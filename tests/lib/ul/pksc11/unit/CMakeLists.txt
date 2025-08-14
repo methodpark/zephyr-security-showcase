@@ -4,6 +4,14 @@ find_package(Zephyr COMPONENTS unittest REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(ul_pkcs11_unittest)
 
+target_include_directories(testbinary PRIVATE
+        ${ZEPHYR_UL_ZEPHYR_SECURITY_SHOWCASE_MODULE_DIR}/include
+)
+
 target_sources(testbinary PRIVATE
     src/main.c
+)
+
+target_sources(testbinary PRIVATE
+        ${ZEPHYR_UL_ZEPHYR_SECURITY_SHOWCASE_MODULE_DIR}/lib/ul/pkcs11/pkcs11.c
 )
