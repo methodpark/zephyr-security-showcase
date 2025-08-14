@@ -1,2 +1,4 @@
 zephyr_library()
 zephyr_library_sources(pkcs11.c)
+
+zephyr_library_link_libraries(mbedTLS)

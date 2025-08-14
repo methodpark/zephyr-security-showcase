@@ -1,4 +1,11 @@
 config UL_PKCS11_IMPL
     bool "Support for custom UL PKS library"
+    select MBEDTLS
+    select MBEDTLS_ENABLE_PSA
+    select MBEDTLS_PSA_CRYPTO_C
+    select MBEDTLS_PSA_CRYPTO_STORAGE_C
+    imply PSA_WANT_KEY_TYPE_AES
+    imply PSA_WANT_ALG_CTR
+    imply PSA_WANT_GENERATE_RANDOM
     help
       This option enables the 'custom UL PKS' library
