@@ -1,0 +1,4 @@
+name: ul-zephyr-security-showcase
+build:
+  kconfig: Kconfig
+  cmake: .

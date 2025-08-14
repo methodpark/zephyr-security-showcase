@@ -1,0 +1,3 @@
+tests:
+  pkcs11.basic:
+    type: unit

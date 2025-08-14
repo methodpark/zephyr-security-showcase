@@ -1,0 +1,4 @@
+config UL_PKCS11_IMPL
+    bool "Support for custom UL PKS library"
+    help
+      This option enables the 'custom UL PKS' library

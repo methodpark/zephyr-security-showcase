@@ -1,0 +1,5 @@
+menu "UL libraries"
+
+rsource "pkcs11/Kconfig"
+
+endmenu

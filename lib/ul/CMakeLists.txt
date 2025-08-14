@@ -1,0 +1,1 @@
+add_subdirectory_ifdef(CONFIG_UL_PKCS11_IMPL pkcs11)
