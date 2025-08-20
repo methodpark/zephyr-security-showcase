@@ -76,6 +76,12 @@ west init -m https://github.com/methodpark/zephyr-security-showcase.git
 west update
 ```
 
+Now, install all other Python requirements for Zephyr so all features work:
+
+```shell
+pip install -r zephyr/scripts/requirements.txt
+```
+
 Afterward, you can work with the repository and workspace.
 
 ## Usage
