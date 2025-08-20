@@ -32,6 +32,9 @@ Other boards may work but are not actively tested.
 
 ### Toolchain setup
 
+To compile the applications, you need the Zephyr SDK installed. For that,
+follow the instructions on the [Zephyr SDK installation page](https://docs.zephyrproject.org/latest/develop/toolchains/zephyr_sdk.html)
+
 To be able to flash and work with the nRF7002 DK, you need to set up `nrfutil` first.
 Consult the [
 `nrfutil` installation page from Nordic](https://docs.nordicsemi.com/bundle/nrfutil/page/guides/installing.html)
