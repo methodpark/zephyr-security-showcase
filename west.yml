@@ -11,5 +11,13 @@ manifest:
       repo-path: sdk-nrf
       remote: ncs
       revision: v3.1.0
-      import: true
-
+      clone-depth: 1
+      import:
+        name-allowlist:
+          - cmsis_6
+          - hal_nordic
+          - mbedtls
+          - nrfxlib
+          - oberon-psa-crypto
+          - trusted-firmware-m
+          - zephyr
