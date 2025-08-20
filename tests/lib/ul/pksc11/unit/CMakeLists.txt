@@ -6,6 +6,7 @@ project(ul_pkcs11_unittest)
 
 target_include_directories(testbinary PRIVATE
         ${ZEPHYR_UL_ZEPHYR_SECURITY_SHOWCASE_MODULE_DIR}/include
+        ${ZEPHYR_UL_ZEPHYR_SECURITY_SHOWCASE_MODULE_DIR}/lib/ul/pkcs11/
         ${ZEPHYR_BASE}/../modules/crypto/mbedtls/include
 )
 

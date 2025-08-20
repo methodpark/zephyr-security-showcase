@@ -7,6 +7,8 @@
 
 #include <external/pkcs11/pkcs11.h>
 
+#include "pkcs11_internal.h"
+
 DEFINE_FFF_GLOBALS
 
 FAKE_VALUE_FUNC(psa_status_t, psa_crypto_init)
@@ -29,7 +31,7 @@ void z_log_minimal_printk(const char *fmt, ...)
     (void)fmt;
 }
 
-static void reset_fakes_fixture(void *f){
+static void reset_fakes(){
     RESET_FAKE(psa_crypto_init)
     RESET_FAKE(psa_close_key)
     RESET_FAKE(psa_open_key)
@@ -45,6 +47,14 @@ static void reset_fakes_fixture(void *f){
     RESET_FAKE(psa_cipher_decrypt)
 }
 
+static void reset_sut(){
+    reset_crypto_ctx_for_tests();
+}
+
+static void setup_before_test_fixture(void *f){
+    reset_fakes();
+    //reset_sut();
+}
 
 ZTEST(ul_pkcs11_unit_testsuite, test__initialize__psa_init_works__returns_success)
 {
@@ -64,4 +74,4 @@ ZTEST(ul_pkcs11_unit_testsuite, test__initialize__psa_init_fails___returns_error
     zassert_equal(ret, CKR_GENERAL_ERROR, "C_Initialize failed");
 }
 
-ZTEST_SUITE(ul_pkcs11_unit_testsuite, NULL, NULL, reset_fakes_fixture, NULL, NULL);
+ZTEST_SUITE(ul_pkcs11_unit_testsuite, NULL, NULL, setup_before_test_fixture, NULL, NULL);
