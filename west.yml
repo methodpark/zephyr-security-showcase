@@ -1,6 +1,6 @@
 manifest:
   self:
-    path: application
+    path: zephyr-security-showcase
 
   remotes:
     - name: ncs
