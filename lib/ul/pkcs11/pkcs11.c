@@ -52,6 +52,9 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
                     CK_OBJECT_HANDLE_PTR pObjHdl)
 {
     (void)hSession;
+    (void)pTemplate;
+    (void)ulCount;
+    (void)pObjHdl;
 
     // Only AES key generation supported in this mock
     if (!pMechanism || pMechanism->mechanism != CKM_AES_KEY_GEN)
@@ -123,6 +126,8 @@ CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession,
                     CK_OBJECT_HANDLE hKey)
 {
     (void)hSession;
+    (void)pMechanism;
+    (void)hKey;
     psa_key_handle_t handle;
     psa_status_t status = psa_open_key(g_ctx.key_id, &handle);
 
@@ -215,6 +220,8 @@ CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession,
                     CK_OBJECT_HANDLE hKey)
 {
     (void)hSession;
+    (void)pMechanism;
+    (void)hKey;
     psa_key_handle_t handle;
     psa_status_t status = psa_open_key(g_ctx.key_id, &handle);
 
