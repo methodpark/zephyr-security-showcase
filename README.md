@@ -50,7 +50,7 @@ or to tackle problems, consult
 Create a new workspace and change the working directory:
 
 ```shell
-ul_zephyr_security_showcase_ws
+mkdir ul_zephyr_security_showcase_ws
 cd ul_zephyr_security_showcase_ws
 ```
 
