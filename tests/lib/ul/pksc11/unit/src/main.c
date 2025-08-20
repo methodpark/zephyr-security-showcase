@@ -74,4 +74,19 @@ ZTEST(ul_pkcs11_unit_testsuite, test__initialize__psa_init_fails___returns_error
     zassert_equal(ret, CKR_GENERAL_ERROR, "C_Initialize failed");
 }
 
+ZTEST(ul_pkcs11_unit_testsuite, test__finalize__works_and_zero){
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+
+    ctx->key_id = 1;
+    ctx->alg = 2;
+    ctx->type = 3;
+
+    CK_RV ret = C_Finalize(NULL);
+
+    zassert_equal(ret, CKR_OK, "C_Finalize failed");
+    zassert_equal(ctx->key_id, 0, "Key ID not reset");
+    zassert_equal(ctx->alg, 0, "Alg not reset");
+    zassert_equal(ctx->type, 0, "Type not reset");
+}
+
 ZTEST_SUITE(ul_pkcs11_unit_testsuite, NULL, NULL, setup_before_test_fixture, NULL, NULL);
