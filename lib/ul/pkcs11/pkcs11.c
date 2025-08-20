@@ -48,8 +48,12 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
 {
     (void)hSession;
 
+    if (!pMechanism){
+        LOG_ERR("pMechanism is NULL");
+        return CKR_ARGUMENTS_BAD;
+    }
     // Only AES key generation supported in this mock
-    if (!pMechanism || pMechanism->mechanism != CKM_AES_KEY_GEN)
+    if (pMechanism->mechanism != CKM_AES_KEY_GEN)
     {
         LOG_ERR("Unsupported mechanism: %lu", pMechanism->mechanism);
         return CKR_MECHANISM_INVALID;
