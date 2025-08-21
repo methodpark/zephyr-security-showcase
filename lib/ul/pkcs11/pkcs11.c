@@ -9,12 +9,7 @@
 
 LOG_MODULE_REGISTER(ul_pkcs11, LOG_LEVEL_INF);
 
-typedef struct
-{
-    psa_key_id_t key_id;
-    psa_algorithm_t alg;
-    psa_key_type_t type;
-} pkcs11_crypto_context_t;
+#include "pkcs11_internal.h"
 
 static pkcs11_crypto_context_t g_ctx;
 
@@ -297,3 +292,15 @@ CK_RV C_DecryptFinal(CK_SESSION_HANDLE hSession,
 
     return CKR_OK;
 }
+
+#ifdef CONFIG_ZTEST
+
+pkcs11_crypto_context_t* get_crypto_ctx_for_tests() {
+    return &g_ctx;
+}
+
+void reset_crypto_ctx_for_tests() {
+    memset(&g_ctx, 0, sizeof(g_ctx));
+}
+
+#endif
