@@ -39,6 +39,10 @@ jobs:
           pip install --upgrade pip west
           echo "$PATH" > $GITHUB_PATH
 
+      - name: Add LLVM toolchain to PATH
+        run: |
+          echo "/usr/lib/llvm-20/bin" >> $GITHUB_PATH
+
       - name: Setup Zephyr workspace
         run: |
           west init -l ./zephyr-security-showcase
@@ -49,12 +53,20 @@ jobs:
           . .venv/bin/activate
           pip install -r zephyr/scripts/requirements.txt
 
-      - name: Build sample application
+      - name: Setup SCA
+        run: |
+          pip install codechecker
+
+      - name: Build and analyze sample application
         run: |
           # TODO: FIXME Normally, one would use `west twister` to build the sample application,
           # but the `/ns` board is missing the pm_config.h. One would need to investigate why
           # this happens and how to fix this. Right now, it is good enough to build this one sample manually.
-          west build -p auto -b nrf7002dk/nrf5340/cpuapp/ns zephyr-security-showcase/samples/ul/pkcs11/
+          west build -p auto -b nrf7002dk/nrf5340/cpuapp/ns zephyr-security-showcase/samples/ul/pkcs11/ -- \
+            -DZEPHYR_SCA_VARIANT=codechecker \
+            -DCODECHECKER_ANALYZE_OPTS="-i;/__w/zephyr-security-showcase/zephyr-security-showcase/ws/zephyr-security-showcase/sca_skipfile;--timeout;60;-d;clang-diagnostic-reserved-identifier" \
+            -DCODECHECKER_PARSE_OPTS="-i;/__w/zephyr-security-showcase/zephyr-security-showcase/ws/zephyr-security-showcase/sca_skipfile" \
+            -DCODECHECKER_PARSE_EXIT_STATUS="TRUE"
 
       - name: Run Zephyr security showcase unit tests (with coverage)
         run: |
