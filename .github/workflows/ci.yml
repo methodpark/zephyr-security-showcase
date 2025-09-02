@@ -25,13 +25,6 @@ jobs:
           show-progress: true
           path: zephyr-security-showcase
 
-      - name: Set up virtual environment + install west
-        run: |
-          python -m venv .venv
-          . .venv/bin/activate
-          pip install --upgrade pip west
-          echo "$PATH" > $GITHUB_PATH
-
       - name: Add LLVM toolchain to PATH
         run: |
           echo "/usr/lib/llvm-20/bin" >> $GITHUB_PATH
@@ -40,11 +33,6 @@ jobs:
         run: |
           west init -l ./zephyr-security-showcase
           west update
-
-      - name: Install Zephyr python dependencies
-        run: |
-          . .venv/bin/activate
-          pip install -r zephyr/scripts/requirements.txt
 
       - name: Setup SCA
         run: |
