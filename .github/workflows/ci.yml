@@ -29,6 +29,18 @@ jobs:
         run: |
           echo "/usr/lib/llvm-20/bin" >> $GITHUB_PATH
 
+      - name: Restore Zephyr workspace cache
+        uses: actions/cache@v4.2.4
+        with:
+          path: |
+            modules
+            nrf
+            nrfxlib
+            zephyr
+          key: zephyr-workspace-${{ runner.os }}-${{ hashFiles('zephyr-security-showcase/west.yml') }}
+          restore-keys: |
+            zephyr-workspace-${{ runner.os }}-
+
       - name: Setup Zephyr workspace
         run: |
           west init -l ./zephyr-security-showcase
