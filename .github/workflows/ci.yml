@@ -1,9 +1,5 @@
 name: "General CI checks"
 
-defaults:
-  run:
-    working-directory: ws
-
 on:
   schedule:
     - cron: "31 1 * * *" # Runs daily at 1:31
@@ -30,7 +26,7 @@ jobs:
         with:
           fetch-depth: 2
           show-progress: true
-          path: ws/zephyr-security-showcase
+          path: zephyr-security-showcase
 
       - name: Set up virtual environment + install west
         run: |
@@ -64,8 +60,8 @@ jobs:
           # this happens and how to fix this. Right now, it is good enough to build this one sample manually.
           west build -p auto -b nrf7002dk/nrf5340/cpuapp/ns zephyr-security-showcase/samples/ul/pkcs11/ -- \
             -DZEPHYR_SCA_VARIANT=codechecker \
-            -DCODECHECKER_ANALYZE_OPTS="-i;/__w/zephyr-security-showcase/zephyr-security-showcase/ws/zephyr-security-showcase/sca_skipfile;--timeout;60;-d;clang-diagnostic-reserved-identifier" \
-            -DCODECHECKER_PARSE_OPTS="-i;/__w/zephyr-security-showcase/zephyr-security-showcase/ws/zephyr-security-showcase/sca_skipfile" \
+            -DCODECHECKER_ANALYZE_OPTS="-i;/__w/zephyr-security-showcase/zephyr-security-showcase/zephyr-security-showcase/sca_skipfile;--timeout;60;-d;clang-diagnostic-reserved-identifier" \
+            -DCODECHECKER_PARSE_OPTS="-i;/__w/zephyr-security-showcase/zephyr-security-showcase/zephyr-security-showcase/sca_skipfile" \
             -DCODECHECKER_PARSE_EXIT_STATUS="TRUE"
 
       - name: Run Zephyr security showcase unit tests (with coverage)
@@ -80,10 +76,10 @@ jobs:
         with:
           name: twister-reports
           path: |
-            ws/twister-out/coverage/index.html
-            ws/twister-out/twister.json
-            ws/twister-out/twister.xml
-            ws/twister-out/twister_report.xml
+            twister-out/coverage/index.html
+            twister-out/twister.json
+            twister-out/twister.xml
+            twister-out/twister_report.xml
 
   publish-test-results:
     name: "Publish Tests Results"
