@@ -57,8 +57,8 @@ jobs:
           # this happens and how to fix this. Right now, it is good enough to build this one sample manually.
           west build -p auto -b nrf7002dk/nrf5340/cpuapp/ns zephyr-security-showcase/samples/ul/pkcs11/ -- \
             -DZEPHYR_SCA_VARIANT=codechecker \
-            -DCODECHECKER_ANALYZE_OPTS="-i;/__w/zephyr-security-showcase/zephyr-security-showcase/zephyr-security-showcase/sca_skipfile;--timeout;60;-d;clang-diagnostic-reserved-identifier" \
-            -DCODECHECKER_PARSE_OPTS="-i;/__w/zephyr-security-showcase/zephyr-security-showcase/zephyr-security-showcase/sca_skipfile" \
+            -DCODECHECKER_ANALYZE_OPTS="--file;$PWD/zephyr-security-showcase/*;--timeout;60;-d;clang-diagnostic-reserved-identifier" \
+            -DCODECHECKER_PARSE_OPTS="--file;$PWD/zephyr-security-showcase/*" \
             -DCODECHECKER_PARSE_EXIT_STATUS="TRUE"
 
       - name: Run Zephyr security showcase unit tests (with coverage)

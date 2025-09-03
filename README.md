@@ -117,3 +117,18 @@ west twister -T <path_to_test_folder>
 # example to execute all unit tests
 west twister -T ./zephyr-security-showcase/tests
 ```
+
+### Run static analyzer
+
+To run the static analyzer add the following flags to the build command:
+
+```
+west build ... -- \
+-DZEPHYR_SCA_VARIANT=codechecker \
+-DCODECHECKER_ANALYZE_OPTS="--file;$PWD/zephyr-security-showcase/*;--timeout;60;-d;clang-diagnostic-reserved-identifier" \
+-DCODECHECKER_PARSE_OPTS="--file;$PWD/zephyr-security-showcase/*" \
+-DCODECHECKER_PARSE_EXIT_STATUS="TRUE" \
+-DCODECHECKER_CLEANUP="TRUE"
+```
+
+This enable codechecker, but only for files in this module (NRF SDK and module code does not passfails).
