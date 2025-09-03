@@ -98,7 +98,7 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
     status = psa_generate_key(&key_attributes, &g_ctx.key_id);
     if (status != PSA_SUCCESS)
     {
-        LOG_INF("psa_generate_key failed! (Error: %d)", status);
+        LOG_ERR("psa_generate_key failed! (Error: %d)", status);
         psa_reset_key_attributes(&key_attributes);
         return CKR_FUNCTION_FAILED;
     }
@@ -107,7 +107,7 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
     status = psa_purge_key(g_ctx.key_id);
     if (status != PSA_SUCCESS)
     {
-        LOG_INF("psa_purge_key failed! (Error: %d)", status);
+        LOG_ERR("psa_purge_key failed! (Error: %d)", status);
         psa_reset_key_attributes(&key_attributes);
         return CKR_FUNCTION_FAILED;
     }
