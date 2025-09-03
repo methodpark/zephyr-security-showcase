@@ -65,7 +65,8 @@ jobs:
         run: |
           west twister -p unit_testing \
             --outdir twister-out --inline-logs \
-            --coverage --coverage-basedir ./zephyr-security-showcase \
+            --coverage --coverage-formats xml \
+            --coverage-basedir ./zephyr-security-showcase \
             -T ./zephyr-security-showcase/
 
       - name: Upload Twister Reports
@@ -73,7 +74,7 @@ jobs:
         with:
           name: twister-reports
           path: |
-            twister-out/coverage/index.html
+            twister-out/coverage/coverage.xml
             twister-out/twister.json
             twister-out/twister.xml
             twister-out/twister_report.xml
@@ -96,3 +97,18 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           files: "artifacts/**/twister_report.xml"
+
+      - name: Create code coverage report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: artifacts/**/coverage.xml
+          format: markdown
+          hide_complexity: true
+          output: both
+
+      - name: Add coverage report to PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          path: code-coverage-results.md
