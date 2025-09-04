@@ -118,7 +118,6 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
     return CKR_OK;
 }
 
-// ---------- Encrypt ----------
 CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession,
                     CK_MECHANISM_PTR pMechanism,
                     CK_OBJECT_HANDLE hKey)
@@ -163,46 +162,6 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE hSession,
     return PSA_SUCCESS;
 }
 
-CK_RV C_EncryptUpdate(CK_SESSION_HANDLE hSession,
-                      CK_BYTE_PTR pPart,
-                      CK_ULONG ulPartLen,
-                      CK_BYTE_PTR pEncryptedPart,
-                      CK_ULONG_PTR pulEncryptedPartLen)
-{
-    (void)hSession;
-    psa_status_t status = psa_cipher_update(&g_encryptOp,
-                                            pPart, ulPartLen,
-                                            pEncryptedPart, *pEncryptedPart,
-                                            (size_t *)pulEncryptedPartLen);
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_cipher_update failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
-    }
-
-    return PSA_SUCCESS;
-}
-
-CK_RV C_EncryptFinal(CK_SESSION_HANDLE hSession,
-                     CK_BYTE_PTR pLastEncryptedPart,
-                     CK_ULONG_PTR pulLastEncryptedPartLen)
-{
-    (void)hSession;
-    psa_status_t status = psa_cipher_finish(&g_encryptOp,
-                                            pLastEncryptedPart,
-                                            *pulLastEncryptedPartLen,
-                                            (size_t *)pulLastEncryptedPartLen);
-    psa_cipher_abort(&g_encryptOp);
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_cipher_finish failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
-    }
-
-    return PSA_SUCCESS;
-}
-
-// ---------- Decrypt ----------
 CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession,
                     CK_MECHANISM_PTR pMechanism,
                     CK_OBJECT_HANDLE hKey)
@@ -235,43 +194,6 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,
     if (status != PSA_SUCCESS)
     {
         LOG_ERR("psa_cipher_decrypt failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
-    }
-
-    return CKR_OK;
-}
-
-CK_RV C_DecryptUpdate(CK_SESSION_HANDLE hSession,
-                      CK_BYTE_PTR pEncryptedPart,
-                      CK_ULONG ulEncryptedPartLen,
-                      CK_BYTE_PTR pPart,
-                      CK_ULONG_PTR pulPartLen)
-{
-    (void)hSession;
-    psa_status_t status = psa_cipher_update(&g_decryptOp,
-                                            pEncryptedPart, ulEncryptedPartLen,
-                                            pPart, *pPart,
-                                            (size_t *)pulPartLen);
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_cipher_update failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
-    }
-    return CKR_OK;
-}
-
-CK_RV C_DecryptFinal(CK_SESSION_HANDLE hSession,
-                     CK_BYTE_PTR pLastPart,
-                     CK_ULONG_PTR pulLastPartLen)
-{
-    (void)hSession;
-    psa_status_t status = psa_cipher_finish(&g_decryptOp,
-                                            pLastPart, *pulLastPartLen,
-                                            (size_t *)pulLastPartLen);
-    psa_cipher_abort(&g_decryptOp);
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_cipher_finish failed! (Error: %d)", status);
         return CKR_FUNCTION_FAILED;
     }
 
