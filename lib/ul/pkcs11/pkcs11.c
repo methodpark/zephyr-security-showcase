@@ -195,7 +195,7 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,
 
     psa_status_t status = psa_cipher_decrypt(g_ctx.key_id, g_ctx.alg, pEncryptedData,
                                 ulEncryptedDataLen, pData,
-                                *pData, (size_t *)pulDataLen);
+                                *pulDataLen, (size_t *)pulDataLen);
     if (status != PSA_SUCCESS)
     {
         LOG_ERR("psa_cipher_decrypt failed! (Error: %d)", status);
