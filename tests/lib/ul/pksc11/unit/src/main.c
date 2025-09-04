@@ -137,6 +137,28 @@ static psa_status_t psa_cipher_encrypt_fake_impl(mbedtls_svc_key_id_t key,
     return PSA_SUCCESS;
 }
 
+static psa_status_t psa_cipher_decrypt_fake_impl(mbedtls_svc_key_id_t key,
+                                                psa_algorithm_t alg,
+                                                const uint8_t *input,
+                                                size_t input_length,
+                                                uint8_t *output,
+                                                size_t output_size,
+                                                size_t *output_length)
+{
+
+    assert(input != NULL);
+    assert(output != NULL);
+    assert(output_length != NULL);
+
+    assert(output_size >= 11);
+
+    for(int i = 0; i < 11; i++) {
+        output[i] = i;
+    }
+    *output_length = 11;
+    return PSA_SUCCESS;
+}
+
 
 ZTEST(ul_pkcs11_unit_testsuite, test__generate_key__new_key_psa_functions_succeed__returns_success){
     psa_open_key_fake.return_val = PSA_ERROR_DOES_NOT_EXIST;
@@ -387,6 +409,64 @@ ZTEST(ul_pkcs11_unit_testsuite, test__decrypt_init__psa_functions_succeed__retur
 
     zassert_equal(psa_cipher_decrypt_setup_fake.arg1_val, GLOBAL_KEY_ID, "psa_cipher_decrypt_setup called with wrong key ID");
     zassert_equal(psa_cipher_decrypt_setup_fake.arg2_val, PSA_ALG_CTR, "psa_cipher_decrypt_setup called with wrong algorithm");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__decrypt__psa_cipher_decrypt_fails__returns_function_failed){
+    psa_cipher_decrypt_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
+
+    manually_initialize_global_crypto_context();
+
+    uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0xAB, 0xCD, 0xEF};
+    uint8_t data[DATA_LEN] = {0};
+
+    uint8_t encrypted_safe[ENCRYPTED_BUFFER_LEN];
+    memcpy(encrypted_safe, encrypted, sizeof(encrypted));
+
+    long unsigned int data_buffer_len = sizeof(data);
+
+    CK_RV ret = C_Decrypt(0, encrypted, sizeof(encrypted), data, &data_buffer_len);
+
+    zassert_equal(ret, CKR_FUNCTION_FAILED, "C_Decrypt did not fail");
+    zassert_equal(psa_cipher_decrypt_fake.call_count, 1, "psa_cipher_decrypt not called");
+
+    zassert_mem_equal(data, (uint8_t[DATA_LEN]){0}, DATA_LEN, "Decrypted data unexpectedly written on fail");
+
+    zassert_mem_equal(encrypted, encrypted_safe, sizeof(encrypted), "Input encrypted data was modified unexpectedly");
+    zassert_equal(data_buffer_len, sizeof(data), "Decrypted buffer length was modified unexpectedly");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__decrypt__psa_cipher_decrypt_succeeds__returns_success){
+    psa_cipher_decrypt_fake.custom_fake = psa_cipher_decrypt_fake_impl;
+
+    manually_initialize_global_crypto_context();
+
+    uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0xAB, 0xCD, 0xEF};
+    uint8_t data[DATA_LEN] = {0};
+
+    uint8_t expected_data[DATA_LEN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    uint8_t encrypted_safe[ENCRYPTED_BUFFER_LEN];
+    memcpy(encrypted_safe, encrypted, sizeof(encrypted));
+
+    long unsigned int data_buffer_len = sizeof(data);
+
+    CK_RV ret = C_Decrypt(0, encrypted, sizeof(encrypted), data, &data_buffer_len);
+
+    zassert_equal(ret, CKR_OK, "C_Decrypt did fail");
+
+    zassert_mem_equal(data, expected_data, DATA_LEN, "Decrypted data was not correctly written");
+    zassert_equal(data_buffer_len, 11, "Decrypted buffer length was not set correctly");
+
+    zassert_mem_equal(encrypted, encrypted_safe, sizeof(encrypted), "Input encrypted data was modified unexpectedly");
+
+    zassert_equal(psa_cipher_decrypt_fake.call_count, 1, "psa_cipher_decrypt not called");
+    zassert_equal(psa_cipher_decrypt_fake.arg0_val, GLOBAL_KEY_ID, "psa_cipher_decrypt called with wrong key ID");
+    zassert_equal(psa_cipher_decrypt_fake.arg1_val, PSA_ALG_CTR, "psa_cipher_decrypt called with wrong algorithm");
+    zassert_equal_ptr(psa_cipher_decrypt_fake.arg2_val, (uintptr_t)encrypted, "psa_cipher_decrypt called with wrong encrypted data pointer");
+    zassert_equal(psa_cipher_decrypt_fake.arg3_val, sizeof(encrypted), "psa_cipher_decrypt called with wrong encrypted data length");
+    zassert_equal_ptr(psa_cipher_decrypt_fake.arg4_val, (uintptr_t)data, "psa_cipher_decrypt called with wrong data pointer");
+    zassert_equal(psa_cipher_decrypt_fake.arg5_val, DATA_LEN, "psa_cipher_decrypt called with wrong data buffer length");
+    zassert_equal_ptr(psa_cipher_decrypt_fake.arg6_val, (uintptr_t)&data_buffer_len, "psa_cipher_decrypt called with wrong data length pointer");
 }
 
 ZTEST_SUITE(ul_pkcs11_unit_testsuite, NULL, NULL, setup_before_test_fixture, NULL, NULL);
