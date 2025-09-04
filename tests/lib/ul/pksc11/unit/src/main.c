@@ -330,4 +330,41 @@ ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__psa_cipher_encrypt_succeeds__retu
     zassert_equal_ptr(psa_cipher_encrypt_fake.arg6_val, (uintptr_t)&encrypted_buffer_len, "psa_cipher_encrypt called with wrong encrypted data length pointer");
 }
 
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__pData_nullptr__returns_arguments_bad){
+    long unsigned int encrypted_buffer_len = ENCRYPTED_BUFFER_LEN;
+    uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0};
+
+    CK_RV ret = C_Encrypt(0, NULL, DATA_LEN, encrypted, &encrypted_buffer_len);
+
+    zassert_equal(ret, CKR_ARGUMENTS_BAD, "C_Encrypt did not fail on NULL pData");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__pEncryptedData_nullptr__returns_arguments_bad){
+    uint8_t data[DATA_LEN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    long unsigned int encrypted_buffer_len = ENCRYPTED_BUFFER_LEN;
+
+    CK_RV ret = C_Encrypt(0, data, DATA_LEN, NULL, &encrypted_buffer_len);
+
+    zassert_equal(ret, CKR_ARGUMENTS_BAD, "C_Encrypt did not fail on NULL pEncryptedData");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__pulEncryptedDataLen_nullptr__returns_arguments_bad){
+    uint8_t data[DATA_LEN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0};
+
+    CK_RV ret = C_Encrypt(0, data, DATA_LEN, encrypted, NULL);
+
+    zassert_equal(ret, CKR_ARGUMENTS_BAD, "C_Encrypt did not fail on NULL pulEncryptedDataLen");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__ulDataLen_zero__returns_arguments_bad){
+    uint8_t data[DATA_LEN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0};
+    long unsigned int encrypted_buffer_len = ENCRYPTED_BUFFER_LEN;
+
+    CK_RV ret = C_Encrypt(0, data, 0, encrypted, &encrypted_buffer_len);
+
+    zassert_equal(ret, CKR_ARGUMENTS_BAD, "C_Encrypt did not fail on zero ulDataLen");
+}
+
 ZTEST_SUITE(ul_pkcs11_unit_testsuite, NULL, NULL, setup_before_test_fixture, NULL, NULL);
