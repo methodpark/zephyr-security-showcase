@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4.2.4
+        uses: actions/checkout@v5
 
       - name: Generate final image tag
         id: final_docker_tag
