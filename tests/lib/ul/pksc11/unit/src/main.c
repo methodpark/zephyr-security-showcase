@@ -32,6 +32,8 @@ void z_log_minimal_printk(const char *fmt, ...)
     (void)fmt;
 }
 
+static psa_key_id_t GLOBAL_KEY_ID = 0x857883;
+
 static void reset_fakes(){
     RESET_FAKE(psa_crypto_init)
     RESET_FAKE(psa_close_key)
@@ -55,6 +57,13 @@ static void reset_sut(){
 static void setup_before_test_fixture(void *f){
     reset_fakes();
     reset_sut();
+}
+
+static void manually_initialize_global_crypto_context() {
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    ctx->key_id = GLOBAL_KEY_ID;
+    ctx->alg = PSA_ALG_CTR;
+    ctx->type = PSA_KEY_TYPE_AES;
 }
 
 ZTEST(ul_pkcs11_unit_testsuite, test__initialize__psa_init_works__returns_success)
@@ -213,6 +222,30 @@ ZTEST(ul_pkcs11_unit_testsuite, test__generate_key__psa_purge_key_fails__returns
 
     zassert_equal(psa_reset_key_attributes_fake.call_count, 1, "psa_reset_key_attributes not called");
     zassert_equal(psa_purge_key_fake.call_count, 1, "psa_purge_key not called");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt_init__psa_cipher_encrypt_setup_fails__returns_function_failed){
+    psa_cipher_encrypt_setup_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
+
+    CK_RV ret = C_EncryptInit(0, NULL, 0);
+
+    zassert_equal(ret, CKR_FUNCTION_FAILED, "C_EncryptInit did not fail");
+    zassert_equal(psa_cipher_encrypt_setup_fake.call_count, 1, "psa_cipher_encrypt_setup not called");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt_init__psa_functions_succeed__returns_success){
+    psa_cipher_encrypt_setup_fake.return_val = PSA_SUCCESS;
+
+    manually_initialize_global_crypto_context();
+
+    CK_RV ret = C_EncryptInit(0, NULL, 0);
+
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed");
+
+    zassert_equal(psa_cipher_encrypt_setup_fake.call_count, 1, "psa_cipher_encrypt_setup not called");
+
+    zassert_equal(psa_cipher_encrypt_setup_fake.arg1_val, GLOBAL_KEY_ID, "psa_cipher_encrypt_setup called with wrong key ID");
+    zassert_equal(psa_cipher_encrypt_setup_fake.arg2_val, PSA_ALG_CTR, "psa_cipher_encrypt_setup called with wrong algorithm");
 }
 
 ZTEST_SUITE(ul_pkcs11_unit_testsuite, NULL, NULL, setup_before_test_fixture, NULL, NULL);
