@@ -3,6 +3,9 @@ name: "General CI checks"
 on:
   schedule:
     - cron: "31 1 * * *" # Runs daily at 1:31
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
