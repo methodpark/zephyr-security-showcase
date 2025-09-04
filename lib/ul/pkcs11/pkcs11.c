@@ -188,6 +188,11 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,
 {
     (void)hSession;
 
+    CKR_CHECK_NULL(pEncryptedData);
+    CKR_CHECK_NULL(pData);
+    CKR_CHECK_NULL(pulDataLen);
+    CKR_CHECK_ZERO(ulEncryptedDataLen);
+
     psa_status_t status = psa_cipher_decrypt(g_ctx.key_id, g_ctx.alg, pEncryptedData,
                                 ulEncryptedDataLen, pData,
                                 *pData, (size_t *)pulDataLen);
