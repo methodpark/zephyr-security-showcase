@@ -365,4 +365,28 @@ ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__ulDataLen_zero__returns_arguments
     zassert_equal(ret, CKR_ARGUMENTS_BAD, "C_Encrypt did not fail on zero ulDataLen");
 }
 
+ZTEST(ul_pkcs11_unit_testsuite, test__decrypt_init__psa_cipher_decrypt_setup_fails__returns_function_failed){
+    psa_cipher_decrypt_setup_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
+
+    CK_RV ret = C_DecryptInit(0, NULL, 0);
+
+    zassert_equal(ret, CKR_FUNCTION_FAILED, "C_DecryptInit did not fail");
+    zassert_equal(psa_cipher_decrypt_setup_fake.call_count, 1, "psa_cipher_decrypt_setup not called");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__decrypt_init__psa_functions_succeed__returns_success){
+    psa_cipher_decrypt_setup_fake.return_val = PSA_SUCCESS;
+
+    manually_initialize_global_crypto_context();
+
+    CK_RV ret = C_DecryptInit(0, NULL, 0);
+
+    zassert_equal(ret, CKR_OK, "C_DecryptInit failed");
+
+    zassert_equal(psa_cipher_decrypt_setup_fake.call_count, 1, "psa_cipher_decrypt_setup not called");
+
+    zassert_equal(psa_cipher_decrypt_setup_fake.arg1_val, GLOBAL_KEY_ID, "psa_cipher_decrypt_setup called with wrong key ID");
+    zassert_equal(psa_cipher_decrypt_setup_fake.arg2_val, PSA_ALG_CTR, "psa_cipher_decrypt_setup called with wrong algorithm");
+}
+
 ZTEST_SUITE(ul_pkcs11_unit_testsuite, NULL, NULL, setup_before_test_fixture, NULL, NULL);
