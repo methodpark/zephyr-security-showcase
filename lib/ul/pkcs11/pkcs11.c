@@ -127,16 +127,8 @@ CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession,
     (void)hSession;
     (void)pMechanism;
     (void)hKey;
-    psa_key_handle_t handle;
-    psa_status_t status = psa_open_key(g_ctx.key_id, &handle);
 
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_open_key failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
-    }
-
-    status = psa_cipher_encrypt_setup(&g_encryptOp, g_ctx.key_id, g_ctx.alg);
+    psa_key_handle_t status = psa_cipher_encrypt_setup(&g_encryptOp, g_ctx.key_id, g_ctx.alg);
     if (status != PSA_SUCCESS)
     {
         LOG_ERR("psa_cipher_encrypt_setup failed! (Error: %d)", status);
@@ -153,15 +145,8 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE hSession,
                 CK_ULONG_PTR pulEncryptedDataLen)
 {
     (void)hSession;
-    psa_key_handle_t handle;
-    psa_status_t status = psa_open_key(g_ctx.key_id, &handle);
 
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_open_key failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
-    }
-    status = psa_cipher_encrypt(g_ctx.key_id, g_ctx.alg,
+    psa_status_t status = psa_cipher_encrypt(g_ctx.key_id, g_ctx.alg,
                                 pData, ulDataLen,
                                 pEncryptedData, *pulEncryptedDataLen,
                                 (size_t *)pulEncryptedDataLen);
@@ -221,16 +206,8 @@ CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession,
     (void)hSession;
     (void)pMechanism;
     (void)hKey;
-    psa_key_handle_t handle;
-    psa_status_t status = psa_open_key(g_ctx.key_id, &handle);
 
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_open_key failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
-    }
-
-    status = psa_cipher_decrypt_setup(&g_decryptOp, g_ctx.key_id, g_ctx.alg);
+    psa_status_t status = psa_cipher_decrypt_setup(&g_decryptOp, g_ctx.key_id, g_ctx.alg);
     if (status != PSA_SUCCESS)
     {
         LOG_ERR("psa_cipher_decrypt_setup failed! (Error: %d)", status);
@@ -247,15 +224,8 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,
                 CK_ULONG_PTR pulDataLen)
 {
     (void)hSession;
-    psa_key_handle_t handle;
-    psa_status_t status = psa_open_key(g_ctx.key_id, &handle);
 
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_open_key failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
-    }
-    status = psa_cipher_decrypt(g_ctx.key_id, g_ctx.alg, pEncryptedData,
+    psa_status_t status = psa_cipher_decrypt(g_ctx.key_id, g_ctx.alg, pEncryptedData,
                                 ulEncryptedDataLen, pData,
                                 *pData, (size_t *)pulDataLen);
     if (status != PSA_SUCCESS)
