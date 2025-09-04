@@ -9,6 +9,7 @@
 
 LOG_MODULE_REGISTER(ul_pkcs11, LOG_LEVEL_INF);
 
+#include "pkcs11_args_helper.h"
 #include "pkcs11_internal.h"
 
 static pkcs11_crypto_context_t g_ctx;
@@ -51,10 +52,8 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
     (void)ulCount;
     (void)pObjHdl;
 
-    if (!pMechanism){
-        LOG_ERR("pMechanism is NULL");
-        return CKR_ARGUMENTS_BAD;
-    }
+    CKR_CHECK_NULL(pMechanism);
+
     // Only AES key generation supported in this mock
     if (pMechanism->mechanism != CKM_AES_KEY_GEN)
     {
