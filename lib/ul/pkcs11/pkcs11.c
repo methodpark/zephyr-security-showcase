@@ -145,6 +145,11 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE hSession,
 {
     (void)hSession;
 
+    CKR_CHECK_NULL(pData);
+    CKR_CHECK_NULL(pEncryptedData);
+    CKR_CHECK_NULL(pulEncryptedDataLen);
+    CKR_CHECK_ZERO(ulDataLen);
+
     psa_status_t status = psa_cipher_encrypt(g_ctx.key_id, g_ctx.alg,
                                 pData, ulDataLen,
                                 pEncryptedData, *pulEncryptedDataLen,
