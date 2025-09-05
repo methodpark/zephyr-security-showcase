@@ -115,4 +115,24 @@ ZTEST(ul_pkcs11_integration_testsuite, test__decrypt_too_small_buffersize__corre
     zassert_equal(ret, CKR_FUNCTION_FAILED, "C_Decrypt should have failed!");
 }
 
+/*
+ * Due to the current implementation and scope, it is possible to call C_Encrypt without a
+ * previos invocation of C_EncryptInit. This shall change in the future, so we mark this
+ * test as an expected failure for now.
+ */
+ZTEST_EXPECT_FAIL(ul_pkcs11_integration_testsuite, test__encrypt__no_previous_encrypt_init__correctly_fails);
+ZTEST(ul_pkcs11_integration_testsuite, test__encrypt__no_previous_encrypt_init__correctly_fails)
+{
+    CK_RV ret;
+
+    CK_BYTE plaintext[] = "Hello World!";
+    CK_ULONG plaintext_len = sizeof(plaintext);
+
+    CK_BYTE ciphertext[sizeof(plaintext) * 4];
+    CK_ULONG ciphertext_len = sizeof(ciphertext);
+
+    ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
+    zassert_equal(ret, CKR_FUNCTION_FAILED, "C_Encrypt should have failed due to missing C_EncryptInit!");
+}
+
 ZTEST_SUITE(ul_pkcs11_integration_testsuite, NULL, NULL, ztest_setup, ztest_teardown, NULL);
