@@ -1,5 +1,9 @@
 #include <stddef.h>
 
+#ifdef CONFIG_ARCH_POSIX
+#include <posix_board_if.h>
+#endif
+
 #include <zephyr/logging/log.h>
 
 #include <external/pkcs11/pkcs11.h>
@@ -69,6 +73,10 @@ int main(void)
         LOG_ERR("C_Finalize failed: 0x%lX", rv);
         return APP_ERROR;
     }
+
+#ifdef CONFIG_ARCH_POSIX
+    posix_exit(APP_SUCCESS);
+#endif
 
     return APP_SUCCESS;
 }
