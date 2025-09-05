@@ -61,7 +61,11 @@ jobs:
         run: |
           pip install codechecker
 
-      - name: Build and analyze sample application
+      - name: Build and test sample applications for integration platforms
+        run: |
+          west twister --integration -T zephyr-security-showcase/samples
+
+      - name: Build and analyze sample application for NRF7002DK
         run: |
           # TODO: FIXME Normally, one would use `west twister` to build the sample application,
           # but the `/ns` board is missing the pm_config.h. One would need to investigate why

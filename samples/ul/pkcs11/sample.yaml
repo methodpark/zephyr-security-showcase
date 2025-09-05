@@ -1,0 +1,9 @@
+tests:
+  sample.pkcs11:
+    integration_platforms:
+      - native_sim
+      #- nrf7002dk/nrf5340/cpuapp/ns (does not work due to pm_config errors right now)
+    build_only: true
+    tags:
+      - ul
+      - pkcs11
