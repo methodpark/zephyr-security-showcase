@@ -13,7 +13,7 @@
 
 #include <external/pkcs11/pkcs11.h>
 
-LOG_MODULE_REGISTER(ul_pkcs11, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(ul_pkcs11);
 
 #include "pkcs11_args_helper.h"
 #include "pkcs11_internal.h"
