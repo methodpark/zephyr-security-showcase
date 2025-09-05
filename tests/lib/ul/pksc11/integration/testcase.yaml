@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2025 UL Solutions - Software Intensive Systems
+#
+# SPDX-License-Identifier: Apache-2.0
+
+common:
+  integration_platforms:
+  - native_sim
+tests:
+  pkcs11.integration:
+    harness: ztest
