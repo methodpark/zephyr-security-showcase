@@ -149,4 +149,126 @@ ZTEST(ul_pkcs11_integration_testsuite, test__encrypt__no_previous_encrypt_init__
     zassert_equal(ret, CKR_OPERATION_NOT_INITIALIZED, "C_Encrypt should have failed due to missing C_EncryptInit!");
 }
 
+ZTEST(ul_pkcs11_integration_testsuite, test__decrypt__no_previous_decrypt_init__correctly_fails)
+{
+    CK_RV ret;
+
+    CK_BYTE plaintext[] = "Hello World!";
+    CK_ULONG plaintext_len = sizeof(plaintext);
+
+    CK_BYTE ciphertext[sizeof(plaintext) * 4];
+    CK_ULONG ciphertext_len = sizeof(ciphertext);
+
+    ret = C_EncryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed!");
+
+    ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
+    zassert_equal(ret, CKR_OK, "C_Encrypt failed!");
+
+    CK_BYTE decryptedtext[sizeof(plaintext)];
+    CK_ULONG decryptedtext_len = sizeof(decryptedtext);
+
+    ret = C_Decrypt(hSession, ciphertext, ciphertext_len, decryptedtext, &decryptedtext_len);
+    zassert_equal(ret, CKR_OPERATION_NOT_INITIALIZED, "C_Decrypt should have failed due to missing C_DecryptInit!");
+}
+
+ZTEST(ul_pkcs11_integration_testsuite, test__encrypt__without_reinit__correctly_fails)
+{
+    CK_RV ret;
+
+    CK_BYTE plaintext[] = "Hello World!";
+    CK_ULONG plaintext_len = sizeof(plaintext);
+
+    CK_BYTE ciphertext[sizeof(plaintext) * 4];
+    CK_ULONG ciphertext_len = sizeof(ciphertext);
+
+    ret = C_EncryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed!");
+
+    ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
+    zassert_equal(ret, CKR_OK, "C_Encrypt failed!");
+
+    ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
+    zassert_equal(ret, CKR_OPERATION_NOT_INITIALIZED, "C_Encrypt should have failed due to missing re-initialization!");
+}
+
+ZTEST(ul_pkcs11_integration_testsuite, test__decrypt__without_reinit__correctly_fails)
+{
+    CK_RV ret;
+
+    CK_BYTE plaintext[] = "Hello World!";
+    CK_ULONG plaintext_len = sizeof(plaintext);
+
+    CK_BYTE ciphertext[sizeof(plaintext) * 4];
+    CK_ULONG ciphertext_len = sizeof(ciphertext);
+
+    ret = C_EncryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed!");
+
+    ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
+    zassert_equal(ret, CKR_OK, "C_Encrypt failed!");
+
+    ret = C_DecryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_DecryptInit failed!");
+
+    CK_BYTE decryptedtext[sizeof(plaintext)];
+    CK_ULONG decryptedtext_len = sizeof(decryptedtext);
+
+    ret = C_Decrypt(hSession, ciphertext, ciphertext_len, decryptedtext, &decryptedtext_len);
+    zassert_equal(ret, CKR_OK, "C_Decrypt failed!");
+
+    ret = C_Decrypt(hSession, ciphertext, ciphertext_len, decryptedtext, &decryptedtext_len);
+    zassert_equal(ret, CKR_OPERATION_NOT_INITIALIZED, "C_Decrypt should have failed due to missing re-initialization!");
+}
+
+ZTEST(ul_pkcs11_integration_testsuite, test__encrypt__multiple_with_init_between__successful)
+{
+    CK_RV ret;
+
+    CK_BYTE plaintext[] = "Hello World!";
+    CK_ULONG plaintext_len = sizeof(plaintext);
+
+    CK_BYTE ciphertext[sizeof(plaintext) * 4];
+    CK_ULONG ciphertext_len = sizeof(ciphertext);
+
+    for(int i = 0; i < 5; i++) {
+        ret = C_EncryptInit(hSession, NULL, hKey);
+        zassert_equal(ret, CKR_OK, "C_EncryptInit number %d failed!", i);
+
+        ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
+        zassert_equal(ret, CKR_OK, "C_Encrypt number %d failed!", i);
+        zassert_not_equal(memcmp(plaintext, ciphertext, plaintext_len), 0, "Ciphertext matches plaintext!");
+    }
+}
+
+ZTEST(ul_pkcs11_integration_testsuite, test__decrypt__multiple_with_init_between__successful)
+{
+    CK_RV ret;
+
+    CK_BYTE plaintext[] = "Hello World!";
+    CK_ULONG plaintext_len = sizeof(plaintext);
+
+    CK_BYTE ciphertext[sizeof(plaintext) * 4];
+    CK_ULONG ciphertext_len = sizeof(ciphertext);
+
+    ret = C_EncryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed!");
+
+    ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
+    zassert_equal(ret, CKR_OK, "C_Encrypt failed!");
+
+    CK_BYTE decryptedtext[sizeof(plaintext)];
+    CK_ULONG decryptedtext_len = sizeof(decryptedtext);
+
+    for(int i = 0; i < 5; i++) {
+        ret = C_DecryptInit(hSession, NULL, hKey);
+        zassert_equal(ret, CKR_OK, "C_DecryptInit number %d failed!", i);
+
+        ret = C_Decrypt(hSession, ciphertext, ciphertext_len, decryptedtext, &decryptedtext_len);
+        zassert_equal(ret, CKR_OK, "C_Decrypt number %d failed!", i);
+        zassert_equal(decryptedtext_len, plaintext_len, "Decrypted text length mismatch!");
+        zassert_mem_equal(decryptedtext, plaintext, plaintext_len, "Decrypted text does not match original!");
+    }
+}
+
 ZTEST_SUITE(ul_pkcs11_integration_testsuite, NULL, NULL, ztest_setup, ztest_teardown, NULL);
