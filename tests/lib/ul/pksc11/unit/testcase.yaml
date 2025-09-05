@@ -2,6 +2,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+common:
+  type: unit
 tests:
-  pkcs11.basic:
-    type: unit
+  pkcs11.basic.info_logging:
+    extra_configs:
+      - CONFIG_LOG_DEFAULT_LEVEL=3
+  pkcs11.basic.no_logging:
+    extra_configs:
+      - CONFIG_LOG_DEFAULT_LEVEL=0
