@@ -24,11 +24,9 @@ FAKE_VALUE_FUNC(psa_status_t, psa_open_key, mbedtls_svc_key_id_t, psa_key_handle
 FAKE_VALUE_FUNC(psa_status_t, psa_generate_key, const psa_key_attributes_t*, psa_key_id_t*)
 FAKE_VOID_FUNC(psa_reset_key_attributes, psa_key_attributes_t*)
 FAKE_VALUE_FUNC(psa_status_t, psa_purge_key, psa_key_id_t)
-FAKE_VALUE_FUNC(psa_status_t, psa_cipher_encrypt_setup, psa_cipher_operation_t*, psa_key_id_t, psa_algorithm_t)
 FAKE_VALUE_FUNC(psa_status_t, psa_cipher_encrypt, psa_key_id_t, psa_algorithm_t, const uint8_t*, size_t, uint8_t*, size_t, size_t*)
 FAKE_VALUE_FUNC(psa_status_t, psa_cipher_finish, psa_cipher_operation_t*, uint8_t*, size_t, size_t*)
 FAKE_VALUE_FUNC(psa_status_t, psa_cipher_abort, psa_cipher_operation_t*)
-FAKE_VALUE_FUNC(psa_status_t, psa_cipher_decrypt_setup, psa_cipher_operation_t*, psa_key_id_t, psa_algorithm_t)
 FAKE_VALUE_FUNC(psa_status_t, psa_cipher_decrypt, psa_key_id_t, psa_algorithm_t, const uint8_t*, size_t, uint8_t*, size_t, size_t*)
 
 #define DATA_LEN 16
@@ -49,11 +47,9 @@ static void reset_fakes(){
     RESET_FAKE(psa_generate_key)
     RESET_FAKE(psa_reset_key_attributes)
     RESET_FAKE(psa_purge_key)
-    RESET_FAKE(psa_cipher_encrypt_setup)
     RESET_FAKE(psa_cipher_encrypt)
     RESET_FAKE(psa_cipher_finish)
     RESET_FAKE(psa_cipher_abort)
-    RESET_FAKE(psa_cipher_decrypt_setup)
     RESET_FAKE(psa_cipher_decrypt)
 }
 
@@ -71,6 +67,16 @@ static void manually_initialize_global_crypto_context() {
     ctx->key_id = GLOBAL_KEY_ID;
     ctx->alg = PSA_ALG_CTR;
     ctx->type = PSA_KEY_TYPE_AES;
+}
+
+static void enable_encrypt_mode_for_tests() {
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    ctx->encrypt_mode_active = true;
+}
+
+static void enable_decrypt_mode_for_tests() {
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    ctx->decrypt_mode_active = true;
 }
 
 ZTEST(ul_pkcs11_unit_testsuite, test__initialize__psa_init_works__returns_success)
@@ -275,17 +281,36 @@ ZTEST(ul_pkcs11_unit_testsuite, test__generate_key__psa_purge_key_fails__returns
     zassert_equal(psa_purge_key_fake.call_count, 1, "psa_purge_key not called");
 }
 
-ZTEST(ul_pkcs11_unit_testsuite, test__encrypt_init__psa_cipher_encrypt_setup_fails__returns_function_failed){
-    psa_cipher_encrypt_setup_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt_init__psa_open_key_fails_returns_function_failed){
+    psa_open_key_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
 
     CK_RV ret = C_EncryptInit(0, NULL, 0);
 
     zassert_equal(ret, CKR_FUNCTION_FAILED, "C_EncryptInit did not fail");
-    zassert_equal(psa_cipher_encrypt_setup_fake.call_count, 1, "psa_cipher_encrypt_setup not called");
+
+    zassert_equal(psa_open_key_fake.call_count, 1, "psa_open_key not called");
+
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    zassert_false(ctx->encrypt_mode_active, "Encrypt mode active unexpectedly");
+    zassert_false(ctx->decrypt_mode_active, "Decrypt mode active unexpectedly");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt_init__key_does_not_exist__returns_key_handle_invalid){
+    psa_open_key_fake.return_val = PSA_ERROR_DOES_NOT_EXIST;
+
+    CK_RV ret = C_EncryptInit(0, NULL, 0);
+
+    zassert_equal(ret, CKR_KEY_HANDLE_INVALID, "C_EncryptInit did not fail");
+
+    zassert_equal(psa_open_key_fake.call_count, 1, "psa_open_key not called");
+
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    zassert_false(ctx->encrypt_mode_active, "Encrypt mode active unexpectedly");
+    zassert_false(ctx->decrypt_mode_active, "Decrypt mode active unexpectedly");
 }
 
 ZTEST(ul_pkcs11_unit_testsuite, test__encrypt_init__psa_functions_succeed__returns_success){
-    psa_cipher_encrypt_setup_fake.return_val = PSA_SUCCESS;
+    psa_open_key_fake.return_val = PSA_SUCCESS;
 
     manually_initialize_global_crypto_context();
 
@@ -293,16 +318,31 @@ ZTEST(ul_pkcs11_unit_testsuite, test__encrypt_init__psa_functions_succeed__retur
 
     zassert_equal(ret, CKR_OK, "C_EncryptInit failed");
 
-    zassert_equal(psa_cipher_encrypt_setup_fake.call_count, 1, "psa_cipher_encrypt_setup not called");
+    zassert_equal(psa_open_key_fake.call_count, 1, "psa_open_key not called");
 
-    zassert_equal(psa_cipher_encrypt_setup_fake.arg1_val, GLOBAL_KEY_ID, "psa_cipher_encrypt_setup called with wrong key ID");
-    zassert_equal(psa_cipher_encrypt_setup_fake.arg2_val, PSA_ALG_CTR, "psa_cipher_encrypt_setup called with wrong algorithm");
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    zassert_true(ctx->encrypt_mode_active, "Encrypt mode not active after C_EncryptInit");
+    zassert_false(ctx->decrypt_mode_active, "Decrypt mode active after C_EncryptInit");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__no_encrypt_init__returns_function_failed){
+    manually_initialize_global_crypto_context();
+
+    uint8_t data[DATA_LEN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0};
+    long unsigned int encrypted_buffer_len = sizeof(encrypted);
+
+    CK_RV ret = C_Encrypt(0, data, sizeof(data), encrypted, &encrypted_buffer_len);
+
+    zassert_equal(ret, CKR_OPERATION_NOT_INITIALIZED, "C_Encrypt did not fail");
 }
 
 ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__psa_cipher_encrypt_fails__returns_function_failed){
     psa_cipher_encrypt_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
 
     manually_initialize_global_crypto_context();
+    enable_encrypt_mode_for_tests();
 
     uint8_t data[DATA_LEN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0};
@@ -327,6 +367,7 @@ ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__psa_cipher_encrypt_succeeds__retu
     psa_cipher_encrypt_fake.custom_fake = psa_cipher_encrypt_fake_impl;
 
     manually_initialize_global_crypto_context();
+    enable_encrypt_mode_for_tests();
 
     uint8_t data[DATA_LEN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0};
@@ -340,6 +381,9 @@ ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__psa_cipher_encrypt_succeeds__retu
     CK_RV ret = C_Encrypt(0, data, sizeof(data), encrypted, &encrypted_buffer_len);
 
     zassert_equal(ret, CKR_OK, "C_Encrypt did fail");
+
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    zassert_false(ctx->encrypt_mode_active, "Encrypt mode not set back after C_Encrypt");
 
     zassert_mem_equal(encrypted, expected_encrypted, ENCRYPTED_BUFFER_LEN, "Encrypted data was not correctly written");
     zassert_equal(encrypted_buffer_len, 3, "Encrypted buffer length was not set correctly");
@@ -393,17 +437,49 @@ ZTEST(ul_pkcs11_unit_testsuite, test__encrypt__ulDataLen_zero__returns_arguments
     zassert_equal(ret, CKR_ARGUMENTS_BAD, "C_Encrypt did not fail on zero ulDataLen");
 }
 
-ZTEST(ul_pkcs11_unit_testsuite, test__decrypt_init__psa_cipher_decrypt_setup_fails__returns_function_failed){
-    psa_cipher_decrypt_setup_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
+ZTEST(ul_pkcs11_unit_testsuite, test__decrypt_init__psa_open_key_fails__returns_function_failed){
+    psa_open_key_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
 
     CK_RV ret = C_DecryptInit(0, NULL, 0);
 
     zassert_equal(ret, CKR_FUNCTION_FAILED, "C_DecryptInit did not fail");
-    zassert_equal(psa_cipher_decrypt_setup_fake.call_count, 1, "psa_cipher_decrypt_setup not called");
+
+    zassert_equal(psa_open_key_fake.call_count, 1, "psa_open_key not called");
+
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    zassert_false(ctx->encrypt_mode_active, "Encrypt mode active unexpectedly");
+    zassert_false(ctx->decrypt_mode_active, "Decrypt mode active unexpectedly");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__decrypt__no_decrypt_init__returns_function_failed){
+    manually_initialize_global_crypto_context();
+
+    uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0xAB, 0xCD, 0xEF};
+    uint8_t data[DATA_LEN] = {0};
+
+    long unsigned int data_buffer_len = sizeof(data);
+
+    CK_RV ret = C_Decrypt(0, encrypted, sizeof(encrypted), data, &data_buffer_len);
+
+    zassert_equal(ret, CKR_OPERATION_NOT_INITIALIZED, "C_Decrypt did not fail");
+}
+
+ZTEST(ul_pkcs11_unit_testsuite, test__decrypt_init__key_does_not_exist__returns_key_handle_invalid){
+    psa_open_key_fake.return_val = PSA_ERROR_DOES_NOT_EXIST;
+
+    CK_RV ret = C_DecryptInit(0, NULL, 0);
+
+    zassert_equal(ret, CKR_KEY_HANDLE_INVALID, "C_DecryptInit did not fail");
+
+    zassert_equal(psa_open_key_fake.call_count, 1, "psa_open_key not called");
+
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    zassert_false(ctx->encrypt_mode_active, "Encrypt mode active unexpectedly");
+    zassert_false(ctx->decrypt_mode_active, "Decrypt mode active unexpectedly");
 }
 
 ZTEST(ul_pkcs11_unit_testsuite, test__decrypt_init__psa_functions_succeed__returns_success){
-    psa_cipher_decrypt_setup_fake.return_val = PSA_SUCCESS;
+    psa_open_key_fake.return_val = PSA_SUCCESS;
 
     manually_initialize_global_crypto_context();
 
@@ -411,16 +487,18 @@ ZTEST(ul_pkcs11_unit_testsuite, test__decrypt_init__psa_functions_succeed__retur
 
     zassert_equal(ret, CKR_OK, "C_DecryptInit failed");
 
-    zassert_equal(psa_cipher_decrypt_setup_fake.call_count, 1, "psa_cipher_decrypt_setup not called");
+    zassert_equal(psa_open_key_fake.call_count, 1, "psa_open_key not called");
 
-    zassert_equal(psa_cipher_decrypt_setup_fake.arg1_val, GLOBAL_KEY_ID, "psa_cipher_decrypt_setup called with wrong key ID");
-    zassert_equal(psa_cipher_decrypt_setup_fake.arg2_val, PSA_ALG_CTR, "psa_cipher_decrypt_setup called with wrong algorithm");
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    zassert_true(ctx->decrypt_mode_active, "Decrypt mode not active after C_DecryptInit");
+    zassert_false(ctx->encrypt_mode_active, "Encrypt mode active after C_DecryptInit");
 }
 
 ZTEST(ul_pkcs11_unit_testsuite, test__decrypt__psa_cipher_decrypt_fails__returns_function_failed){
     psa_cipher_decrypt_fake.return_val = PSA_ERROR_COMMUNICATION_FAILURE;
 
     manually_initialize_global_crypto_context();
+    enable_decrypt_mode_for_tests();
 
     uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0xAB, 0xCD, 0xEF};
     uint8_t data[DATA_LEN] = {0};
@@ -445,6 +523,7 @@ ZTEST(ul_pkcs11_unit_testsuite, test__decrypt__psa_cipher_decrypt_succeeds__retu
     psa_cipher_decrypt_fake.custom_fake = psa_cipher_decrypt_fake_impl;
 
     manually_initialize_global_crypto_context();
+    enable_decrypt_mode_for_tests();
 
     uint8_t encrypted[ENCRYPTED_BUFFER_LEN] = {0xAB, 0xCD, 0xEF};
     uint8_t data[DATA_LEN] = {0};
@@ -459,6 +538,9 @@ ZTEST(ul_pkcs11_unit_testsuite, test__decrypt__psa_cipher_decrypt_succeeds__retu
     CK_RV ret = C_Decrypt(0, encrypted, sizeof(encrypted), data, &data_buffer_len);
 
     zassert_equal(ret, CKR_OK, "C_Decrypt did fail");
+
+    pkcs11_crypto_context_t *ctx = get_crypto_ctx_for_tests();
+    zassert_false(ctx->decrypt_mode_active, "Decrypt mode not set back after C_Encrypt");
 
     zassert_mem_equal(data, expected_data, DATA_LEN, "Decrypted data was not correctly written");
     zassert_equal(data_buffer_len, 11, "Decrypted buffer length was not set correctly");

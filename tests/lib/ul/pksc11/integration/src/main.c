@@ -47,13 +47,18 @@ ZTEST(ul_pkcs11_integration_testsuite, test__setup_teardown_only_no_encrypt__suc
 
 ZTEST(ul_pkcs11_integration_testsuite, test__encrypt_simple_string__different_from_original)
 {
+    CK_RV ret;
+
     CK_BYTE plaintext[] = "Hello World!";
     CK_ULONG plaintext_len = sizeof(plaintext);
 
     CK_BYTE ciphertext[sizeof(plaintext) * 4]; // Ensure enough space for encryption
     CK_ULONG ciphertext_len = sizeof(ciphertext);
 
-    CK_RV ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
+    ret = C_EncryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed!");
+
+    ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
     zassert_equal(ret, CKR_OK, "C_Encrypt failed!");
     zassert_not_equal(memcmp(plaintext, ciphertext, plaintext_len), 0, "Ciphertext matches plaintext!");
 }
@@ -68,11 +73,17 @@ ZTEST(ul_pkcs11_integration_testsuite, test__encrypt_and_decrypt_simple_string__
     CK_BYTE ciphertext[sizeof(plaintext) * 4]; // Ensure enough space for encryption
     CK_ULONG ciphertext_len = sizeof(ciphertext);
 
+    ret = C_EncryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed!");
+
     ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
     zassert_equal(ret, CKR_OK, "C_Encrypt failed!");
 
     CK_BYTE decryptedtext[sizeof(plaintext)];
     CK_ULONG decryptedtext_len = sizeof(decryptedtext);
+
+    ret = C_DecryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_DecryptInit failed!");
 
     ret = C_Decrypt(hSession, ciphertext, ciphertext_len, decryptedtext, &decryptedtext_len);
     zassert_equal(ret, CKR_OK, "C_Decrypt failed!");
@@ -90,6 +101,9 @@ ZTEST(ul_pkcs11_integration_testsuite, test__encrypt_too_small_buffersize__corre
     CK_BYTE ciphertext[16]; // Intentionally too small
     CK_ULONG ciphertext_len = sizeof(ciphertext);
 
+    ret = C_EncryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed!");
+
     ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
     zassert_equal(ret, CKR_FUNCTION_FAILED, "C_Encrypt should have failed!");
 }
@@ -105,22 +119,22 @@ ZTEST(ul_pkcs11_integration_testsuite, test__decrypt_too_small_buffersize__corre
     CK_BYTE ciphertext[sizeof(plaintext) * 4]; // Ensure enough space for encryption
     CK_ULONG ciphertext_len = sizeof(ciphertext);
 
+    ret = C_EncryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_EncryptInit failed!");
+
     ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
     zassert_equal(ret, CKR_OK, "C_Encrypt failed!");
 
     CK_BYTE decryptedtext[8]; // Intentionally too small
     CK_ULONG decryptedtext_len = sizeof(decryptedtext);
 
+    ret = C_DecryptInit(hSession, NULL, hKey);
+    zassert_equal(ret, CKR_OK, "C_DecryptInit failed!");
+
     ret = C_Decrypt(hSession, ciphertext, ciphertext_len, decryptedtext, &decryptedtext_len);
     zassert_equal(ret, CKR_FUNCTION_FAILED, "C_Decrypt should have failed!");
 }
 
-/*
- * Due to the current implementation and scope, it is possible to call C_Encrypt without a
- * previos invocation of C_EncryptInit. This shall change in the future, so we mark this
- * test as an expected failure for now.
- */
-ZTEST_EXPECT_FAIL(ul_pkcs11_integration_testsuite, test__encrypt__no_previous_encrypt_init__correctly_fails);
 ZTEST(ul_pkcs11_integration_testsuite, test__encrypt__no_previous_encrypt_init__correctly_fails)
 {
     CK_RV ret;
@@ -132,7 +146,7 @@ ZTEST(ul_pkcs11_integration_testsuite, test__encrypt__no_previous_encrypt_init__
     CK_ULONG ciphertext_len = sizeof(ciphertext);
 
     ret = C_Encrypt(hSession, plaintext, plaintext_len, ciphertext, &ciphertext_len);
-    zassert_equal(ret, CKR_FUNCTION_FAILED, "C_Encrypt should have failed due to missing C_EncryptInit!");
+    zassert_equal(ret, CKR_OPERATION_NOT_INITIALIZED, "C_Encrypt should have failed due to missing C_EncryptInit!");
 }
 
 ZTEST_SUITE(ul_pkcs11_integration_testsuite, NULL, NULL, ztest_setup, ztest_teardown, NULL);
