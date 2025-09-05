@@ -21,4 +21,6 @@ COPY --from=builder /usr/lib /usr/lib
 RUN <<EOF
     cd /opt/toolchains/zephyr-sdk-*
     ./setup.sh -c
+
+    pip install codechecker==6.26.1
 EOF
