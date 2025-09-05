@@ -1,0 +1,5 @@
+version = 1
+
+[[annotations]]
+path = "include/external/pkcs11/*"
+SPDX-License-Identifier = "LicenseRef-OASIS-TCS"
