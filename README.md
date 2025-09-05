@@ -132,3 +132,24 @@ west build ... -- \
 ```
 
 This enable codechecker, but only for files in this module (NRF SDK and module code does not passfails).
+
+### Generate SBOM
+
+To generate the SBOM run the following commands:
+
+```
+west spdx --init -d <build_dir>/<application_name>
+west build -b <board_name> <path_to_application> -d <build_dir>/
+west spdx -d <build_dir>/<application_name> -s <output_dir>
+```
+
+To generate the SBOM for the pkcs11 sample run and store the result in `spdx`:
+
+```
+west spdx --init -d build/pkcs11
+west build -b nrf7002dk/nrf5340/cpuapp/ns ./zephyr-security-showcase/samples/ul/pkcs11 -d build/
+west spdx -d build/pkcs11 -s spdx
+```
+
+This does not work for `native_sim`, see the [Zephyr
+Documentation](https://docs.zephyrproject.org/latest/develop/west/zephyr-cmds.html#software-bill-of-materials-west-spdx).
