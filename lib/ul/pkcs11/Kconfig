@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 UL Solutions - Software Intensive Systems
+#
+# SPDX-License-Identifier: Apache-2.0
+
 config UL_PKCS11_IMPL
     bool "Support for custom UL PKS library"
     select MBEDTLS

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 UL Solutions - Software Intensive Systems
+#
+# SPDX-License-Identifier: Apache-2.0
+
 add_library(ul_common_lib_flags INTERFACE)
 target_compile_options(ul_common_lib_flags INTERFACE
     -Werror -Wall -Wextra

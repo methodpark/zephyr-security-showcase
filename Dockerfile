@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 UL Solutions - Software Intensive Systems
+#
+# SPDX-License-Identifier: Apache-2.0
+
 ARG CI_IMAGE_VERSION=v0.28.4
 
 FROM ghcr.io/zephyrproject-rtos/ci:${CI_IMAGE_VERSION} AS builder
