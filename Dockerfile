@@ -15,6 +15,8 @@ FROM ghcr.io/zephyrproject-rtos/ci-base:${CI_IMAGE_VERSION}
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 
 COPY --from=builder /opt/toolchains/ /opt/toolchains/
+# additional host packages like clang static analyzers
+COPY --from=builder /usr/lib /usr/lib
 
 RUN <<EOF
     cd /opt/toolchains/zephyr-sdk-*
