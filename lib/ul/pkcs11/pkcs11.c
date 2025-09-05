@@ -20,8 +20,25 @@ LOG_MODULE_REGISTER(ul_pkcs11);
 
 static pkcs11_crypto_context_t g_ctx;
 
-static psa_cipher_operation_t g_encryptOp = PSA_CIPHER_OPERATION_INIT;
-static psa_cipher_operation_t g_decryptOp = PSA_CIPHER_OPERATION_INIT;
+enum ul_psa_key_exists_state {
+    UL_PSA_KEY_EXISTS,
+    UL_PSA_KEY_DOES_NOT_EXIST,
+    UL_PSA_KEY_ERROR
+};
+
+static enum ul_psa_key_exists_state ul_psa_key_exists(psa_key_id_t key_id) {
+    psa_key_handle_t handle;
+    psa_status_t status = psa_open_key(key_id, &handle);
+    if (status == PSA_SUCCESS) {
+        psa_close_key(handle);
+        return UL_PSA_KEY_EXISTS;
+    } else if (status == PSA_ERROR_DOES_NOT_EXIST) {
+        return UL_PSA_KEY_DOES_NOT_EXIST;
+    } else {
+        LOG_ERR("Checking if key exists failed: psa_open_key failed! (Error: %d)", status);
+        return UL_PSA_KEY_ERROR;
+    }
+}
 
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 {
@@ -73,19 +90,14 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
         .type = PSA_KEY_TYPE_AES
     };
 
-    psa_key_handle_t handle;
-    psa_status_t status = psa_open_key(g_ctx.key_id, &handle);
+    enum ul_psa_key_exists_state key_state = ul_psa_key_exists(g_ctx.key_id);
 
-    if (status == PSA_SUCCESS)
-    {
-        psa_close_key(handle);
+    if(key_state == UL_PSA_KEY_ERROR) {
+        LOG_ERR("Error checking if key exists");
+        return CKR_FUNCTION_FAILED;
+    } else if(key_state == UL_PSA_KEY_EXISTS) {
         LOG_INF("Key already exists, stored in session context: %lu", (unsigned long)g_ctx.key_id);
         return CKR_OK;
-    }
-    else if (status != PSA_ERROR_DOES_NOT_EXIST)
-    {
-        LOG_ERR("psa_open_key failed! (Error: %d)", status);
-        return CKR_FUNCTION_FAILED;
     }
 
     // Configure key attributes
@@ -100,7 +112,7 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
     psa_set_key_id(&key_attributes, PSA_KEY_ID_USER_MIN);
 
     // Generate key
-    status = psa_generate_key(&key_attributes, &g_ctx.key_id);
+    psa_status_t status = psa_generate_key(&key_attributes, &g_ctx.key_id);
     if (status != PSA_SUCCESS)
     {
         LOG_ERR("psa_generate_key failed! (Error: %d)", status);
@@ -132,13 +144,16 @@ CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession,
     (void)pMechanism;
     (void)hKey;
 
-    psa_key_handle_t status = psa_cipher_encrypt_setup(&g_encryptOp, g_ctx.key_id, g_ctx.alg);
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_cipher_encrypt_setup failed! (Error: %d)", status);
+    enum ul_psa_key_exists_state key_state = ul_psa_key_exists(g_ctx.key_id);
+    if(key_state == UL_PSA_KEY_ERROR) {
+        LOG_ERR("Error checking if key exists");
         return CKR_FUNCTION_FAILED;
+    } else if(key_state == UL_PSA_KEY_DOES_NOT_EXIST) {
+        LOG_ERR("Key does not exist! Generate it first using C_GenerateKey.");
+        return CKR_KEY_HANDLE_INVALID;
     }
 
+    g_ctx.encrypt_mode_active = true;
     return CKR_OK;
 }
 
@@ -154,6 +169,13 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE hSession,
     CKR_CHECK_NULL(pEncryptedData);
     CKR_CHECK_NULL(pulEncryptedDataLen);
     CKR_CHECK_ZERO(ulDataLen);
+
+    if(!g_ctx.encrypt_mode_active) {
+        LOG_ERR("Encryption not initialized! Call C_EncryptInit first.");
+        return CKR_OPERATION_NOT_INITIALIZED;
+    }
+    // Disable further encryptions until re-initialized
+    g_ctx.encrypt_mode_active = false;
 
     psa_status_t status = psa_cipher_encrypt(g_ctx.key_id, g_ctx.alg,
                                 pData, ulDataLen,
@@ -176,13 +198,16 @@ CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession,
     (void)pMechanism;
     (void)hKey;
 
-    psa_status_t status = psa_cipher_decrypt_setup(&g_decryptOp, g_ctx.key_id, g_ctx.alg);
-    if (status != PSA_SUCCESS)
-    {
-        LOG_ERR("psa_cipher_decrypt_setup failed! (Error: %d)", status);
+    enum ul_psa_key_exists_state key_state = ul_psa_key_exists(g_ctx.key_id);
+    if(key_state == UL_PSA_KEY_ERROR) {
+        LOG_ERR("Error checking if key exists");
         return CKR_FUNCTION_FAILED;
+    } else if(key_state == UL_PSA_KEY_DOES_NOT_EXIST) {
+        LOG_ERR("Key does not exist! Generate it first using C_GenerateKey.");
+        return CKR_KEY_HANDLE_INVALID;
     }
 
+    g_ctx.decrypt_mode_active = true;
     return CKR_OK;
 }
 
@@ -198,6 +223,13 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,
     CKR_CHECK_NULL(pData);
     CKR_CHECK_NULL(pulDataLen);
     CKR_CHECK_ZERO(ulEncryptedDataLen);
+
+    if(!g_ctx.decrypt_mode_active) {
+        LOG_ERR("Decryption not initialized! Call C_DecryptInit first.");
+        return CKR_OPERATION_NOT_INITIALIZED;
+    }
+    // Disable further decryption until re-initialized
+    g_ctx.decrypt_mode_active = false;
 
     psa_status_t status = psa_cipher_decrypt(g_ctx.key_id, g_ctx.alg, pEncryptedData,
                                 ulEncryptedDataLen, pData,

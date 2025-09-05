@@ -12,6 +12,8 @@ typedef struct
     psa_key_id_t key_id;
     psa_algorithm_t alg;
     psa_key_type_t type;
+    bool encrypt_mode_active;
+    bool decrypt_mode_active;
 } pkcs11_crypto_context_t;
 
 #ifdef CONFIG_ZTEST

@@ -50,6 +50,14 @@ int main(void)
     CK_BYTE ciphertext[64];
     CK_ULONG ciphertext_len = sizeof(ciphertext);
 
+    rv = C_EncryptInit(session, NULL, key_handle);
+    if (rv != CKR_OK)
+    {
+        LOG_ERR("C_EncryptInit failed: 0x%lX", rv);
+        return APP_ERROR;
+    }
+    LOG_INF("C_EncryptInit succeeded");
+
     rv = C_Encrypt(session, plaintext, sizeof(plaintext), ciphertext, &ciphertext_len);
     if (rv != CKR_OK)
     {
@@ -61,6 +69,14 @@ int main(void)
     // Decryption test
     CK_BYTE decrypted[64];
     CK_ULONG decrypted_len = sizeof(decrypted);
+
+    rv = C_DecryptInit(session, NULL, key_handle);
+    if (rv != CKR_OK)
+    {
+        LOG_ERR("C_DecryptInit failed: 0x%lX", rv);
+        return APP_ERROR;
+    }
+    LOG_INF("C_DecryptInit succeeded");
 
     rv = C_Decrypt(session, ciphertext, ciphertext_len, decrypted, &decrypted_len);
     if (rv != CKR_OK)
